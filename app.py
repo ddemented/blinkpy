@@ -4,9 +4,24 @@ import json
 
 import requests
 from flask import Flask, request
+from watson_developer_cloud import ConversationV1, ToneAnalyzerV3
+
 
 app = Flask(__name__)
 
+conversation = ConversationV1(
+  username='cc57b219-35e4-4e13-befc-1adfd097fb9b',
+  password='ZlNUp7YY2KmG',
+  version='2017-04-21'
+)
+
+tone_analyzer = ToneAnalyzerV3(
+   username='018a73a6-40a0-4d83-a0c7-299f22225e45',
+   password='hUkLMvnom8tl',
+   version='2016-05-19'
+)
+
+workspace_id = '0e84fef1-e33a-4b04-913d-121f2064205a'
 
 @app.route('/', methods=['GET'])
 def verify():
@@ -24,7 +39,6 @@ def verify():
 def webhook():
 
     # endpoint for processing incoming messaging events
-
     data = request.get_json()
     log(data)  # you may not want to log every incoming message in production, but it's good for testing
 
@@ -39,13 +53,58 @@ def webhook():
                     recipient_id = messaging_event["recipient"]["id"]  # the recipient's ID, which should be your page's facebook ID
                     message_text = messaging_event["message"]["text"]  # the message's text
 
-                    send_message(sender_id, "roger that!")
+                    anger = int()
+                    disgust = int()
+                    fear = int()
+                    joy = int()
+                    sad = int()
+                    if('/reaction' in message_text.split(' ')):
+                        message = message_text[10:]
+                        tone = tone_analyzer.tone(text=message)
+
+                        for d in tone['document_tone']['tone_categories'][0]['tones']:
+                            print(d)
+                            if(d['tone_name'] == "Anger"):
+                                anger = d['score']
+                            elif(d['tone_name'] == "Disgust"):
+                                disgust = d['score']
+                            elif(d['tone_name'] == "Fear"):
+                                fear = d['score']
+                            elif(d['tone_name'] == "Joy"):
+                                joy = d['score']
+                            elif(d['tone_name'] == "Sadness"):
+                                sad = d['score']
+                        # Check Highest score and send message
+                        if(fear >= disgust and fear >= anger and fear >=joy and fear >= sad):
+                            send_message(sender_id,':o')
+                        elif(anger >= disgust and anger >= fear and anger >=joy and anger >= sad):
+                            send_message(sender_id,'>:(')
+                        elif(disgust >= anger and disgust >= fear and disgust >=joy and disgust >= sad):
+                            send_message(sender_id,'-_-')
+                        elif(joy >= disgust and joy >= anger and joy >= fear and joy >= sad):
+                            send_message(sender_id,':D')
+                        elif(sad >= disgust and sad >= anger and sad >=joy and sad >= fear):
+                            send_message(sender_id, ':(')
+
+                        send_message(sender_id, "Contextual analysis done")
+                    else:
+
+                        global context
+                        # Get response from ibm watson service
+                        response = conversation.message(
+                                        workspace_id=workspace_id,
+                                        message_input={'text': message_text},
+                                        context=context
+                                        )
+                        context = response['context']
+                        message_response = str(response['output']['text'][0])
+                        send_message(sender_id, message_response)
 
                 if messaging_event.get("delivery"):  # delivery confirmation
                     pass
 
                 if messaging_event.get("optin"):  # optin confirmation
-                    pass
+                    send_message(sender_id, "Thanks for trying this bot. Say hi to continue!")
 
                 if messaging_event.get("postback"):  # user clicked/tapped "postback" button in earlier message
                     pass
@@ -78,9 +137,12 @@ def send_message(recipient_id, message_text):
 
 
 def log(message):  # simple wrapper for logging to stdout on heroku
-    print str(message)
+    print(str(message))
     sys.stdout.flush()
 
 
 if __name__ == '__main__':
+    print("Running app")
+    global context
+    context = {}
     app.run(debug=True)
