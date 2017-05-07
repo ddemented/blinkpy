@@ -87,7 +87,6 @@ def webhook():
                         elif(sad >= disgust and sad >= anger and sad >=joy and sad >= fear):
                             send_message(sender_id, ':(')
 
-                        send_message(sender_id, "Contextual analysis done")
                     else:
 
                         # Get response from ibm watson service
