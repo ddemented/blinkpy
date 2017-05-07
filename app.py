@@ -5,7 +5,7 @@ import json
 import requests
 from flask import Flask, request
 from watson_developer_cloud import ConversationV1, ToneAnalyzerV3
-
+context = {}
 
 app = Flask(__name__)
 
@@ -89,7 +89,6 @@ def webhook():
                         send_message(sender_id, "Contextual analysis done")
                     else:
 
-                        global context
                         # Get response from ibm watson service
                         response = conversation.message(
                                         workspace_id=workspace_id,
