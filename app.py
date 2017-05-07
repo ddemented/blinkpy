@@ -5,9 +5,10 @@ import json
 import requests
 from flask import Flask, request
 from watson_developer_cloud import ConversationV1, ToneAnalyzerV3
-context = {}
+
 
 app = Flask(__name__)
+context = dict()
 
 conversation = ConversationV1(
   username='cc57b219-35e4-4e13-befc-1adfd097fb9b',
@@ -37,7 +38,7 @@ def verify():
 
 @app.route('/', methods=['POST'])
 def webhook():
-
+    global context
     # endpoint for processing incoming messaging events
     data = request.get_json()
     log(data)  # you may not want to log every incoming message in production, but it's good for testing
@@ -141,5 +142,6 @@ def log(message):  # simple wrapper for logging to stdout on heroku
 
 
 if __name__ == '__main__':
+    global context
     print("Running app")
     app.run(debug=True)
